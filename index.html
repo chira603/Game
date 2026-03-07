@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏹 Arrow Strike - Archery Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="game-hud">
+            <div class="hud-left">
+                <div class="stat-box">
+                    <span class="label">SCORE</span>
+                    <span class="value" id="score">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">ARROWS</span>
+                    <span class="value" id="arrows">10</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="stat-box">
+                    <span class="label">COMBO</span>
+                    <span class="value combo" id="combo">x1</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">HIGH SCORE</span>
+                    <span class="value" id="highScore">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="aim-indicator" id="aimIndicator">
+            <div class="crosshair"></div>
+        </div>
+        
+        <div class="power-meter" id="powerMeter">
+            <div class="power-label">POWER</div>
+            <div class="power-bar">
+                <div class="power-fill" id="powerFill"></div>
+            </div>
+        </div>
+        
+        <div class="game-overlay" id="gameOverlay">
+            <div class="overlay-content">
+                <h1 id="overlayTitle">🏹 ARROW STRIKE 🎯</h1>
+                <p id="overlayMessage">Master the art of archery!</p>
+                <div class="stats-box" id="statsBox" style="display: none;">
+                    <div class="stat-row">
+                        <span>Final Score:</span>
+                        <span id="finalScore">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Targets Hit:</span>
+                        <span id="targetsHit">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Accuracy:</span>
+                        <span id="accuracy">0%</span>
+                    </div>
+                    <div class="stat-row highlight">
+                        <span>High Score:</span>
+                        <span id="finalHighScore">0</span>
+                    </div>
+                </div>
+                <div class="controls-info">
+                    <h3>🎮 How to Play</h3>
+                    <p>🖱️ <strong>Move Mouse</strong> - Aim your bow</p>
+                    <p>⬇️ <strong>Hold Mouse</strong> - Charge power</p>
+                    <p>⬆️ <strong>Release Mouse</strong> - Shoot arrow</p>
+                    <p>📱 <strong>Touch & Drag</strong> - Aim and shoot</p>
+                    <p class="tip">💡 Tip: Hit moving targets for bonus points!</p>
+                </div>
+                <button class="btn-primary" id="startBtn">START SHOOTING</button>
+                <div class="features-info">
+                    <h3>✨ Features</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <span class="icon">🎯</span>
+                            <span>Multiple target types</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="icon">💥</span>
+                            <span>Explosive combos</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="icon">⚡</span>
+                            <span>Speed bonuses</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="icon">🏆</span>
+                            <span>High score system</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,6 +1,3 @@
-# 🏹 Arrow Strike - Archery Target Game
-
-Test your archery skills in this addictive target shooting game! Aim your bow, charge your power, and hit bouncing balls to rack up combo multipliers and high scores!
 
 ## 🌟 Features
 

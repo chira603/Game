@@ -3,594 +3,484 @@ const config = {
     canvas: null,
     ctx: null,
     width: 800,
-    height: 600
+    height: 600,
+    colors: {
+        plant: '#00FF00',
+        vine: '#228B22',
+        bug: '#FF0000',
+        particle: ['#90EE90', '#32CD32', '#00FF00', '#ADFF2F']
+    }
+};
+
+// Player Plant
+const plant = {
+    x: 400,
+    y: 300,
+    radius: 25,
+    speed: 200,
+    dx: 0,
+    dy: 0
+};
+
+// Joystick
+const joystick = {
+    active: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    deltaX: 0,
+    deltaY: 0,
+    maxDistance: 50
 };
 
 // Game State
-let gameState = {
-    score: 0,
-    arrows: 10,
-    arrowsShot: 0,
-    targetsHit: 0,
-    combo: 1,
-    highScore: 0,
+const gameState = {
     isPlaying: false,
-    isPaused: false,
-    isCharging: false,
-    chargePower: 0,
-    maxPower: 100
+    sunlight: 100,
+    water: 80,
+    health: 100,
+    growthLevel: 1,
+    dayTime: 0, // 0-1 = day, 1-2 = night
+    daysCount: 0,
+    bugsKilled: 0
 };
 
-// Bow and Arrow
-let bow = {
-    x: 0,
-    y: 0,
-    angle: 0,
-    width: 80,
-    height: 120
-};
+// Arrays
+const vines = [];
+const bugs = [];
+const particles = [];
 
-let arrows = [];
-let activeArrow = null;
-
-// Targets (bouncing balls)
-let targets = [];
-
-// Particles
-let particles = [];
-
-// Mouse/Touch tracking
-let mouse = {
-    x: 0,
-    y: 0,
-    isDown: false
-};
-
-// Colors
-const colors = {
-    bow: '#8B4513',
-    arrow: '#FFD700',
-    string: '#D2691E',
-    targets: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'],
-    particles: ['#FFD700', '#FF6B6B', '#4ECDC4', '#FFA07A']
-};
+// Keyboard
+const keys = {};
 
 // Initialize
 window.onload = () => {
     config.canvas = document.getElementById('gameCanvas');
     config.ctx = config.canvas.getContext('2d');
     
-    // Set canvas size
     const isMobile = window.innerWidth < 768;
-    config.width = isMobile ? Math.min(window.innerWidth - 20, 400) : 800;
-    config.height = isMobile ? Math.min(window.innerHeight - 150, 500) : 600;
+    config.width = isMobile ? window.innerWidth - 10 : 800;
+    config.height = isMobile ? window.innerHeight - 150 : 600;
     
     config.canvas.width = config.width;
     config.canvas.height = config.height;
     
-    // Set bow position (bottom center)
-    bow.x = config.width / 2;
-    bow.y = config.height - 50;
-    
-    // Load high score
-    gameState.highScore = parseInt(localStorage.getItem('arrowStrikeHighScore')) || 0;
-    updateUI();
+    plant.x = config.width / 2;
+    plant.y = config.height / 2;
     
     // Event listeners
     document.getElementById('startBtn').addEventListener('click', startGame);
     
-    // Mouse events
-    config.canvas.addEventListener('mousemove', handleMouseMove);
-    config.canvas.addEventListener('mousedown', handleMouseDown);
-    config.canvas.addEventListener('mouseup', handleMouseUp);
+    // Canvas click to place vines
+    config.canvas.addEventListener('click', placeVine);
+    config.canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = config.canvas.getBoundingClientRect();
+        placeVine({
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+    });
     
-    // Touch events
-    config.canvas.addEventListener('touchstart', handleTouchStart, false);
-    config.canvas.addEventListener('touchmove', handleTouchMove, false);
-    config.canvas.addEventListener('touchend', handleTouchEnd, false);
+    // Joystick events
+    setupJoystick();
     
-    // Show start overlay
-    showOverlay('🏹 ARROW STRIKE 🎯', 'Master the art of archery!');
+    // Keyboard
+    window.addEventListener('keydown', (e) => keys[e.key] = true);
+    window.addEventListener('keyup', (e) => keys[e.key] = false);
     
-    // Start animation loop
-    requestAnimationFrame(gameLoop);
+    updateUI();
 };
 
-function startGame() {
-    hideOverlay();
-    resetGame();
-    gameState.isPlaying = true;
-    spawnTargets();
-}
-
-function resetGame() {
-    gameState.score = 0;
-    gameState.arrows = 10;
-    gameState.arrowsShot = 0;
-    gameState.targetsHit = 0;
-    gameState.combo = 1;
-    gameState.isCharging = false;
-    gameState.chargePower = 0;
+function setupJoystick() {
+    const container = document.getElementById('joystickContainer');
+    const stick = document.getElementById('joystickStick');
     
-    arrows = [];
-    targets = [];
-    particles = [];
-    activeArrow = null;
+    container.addEventListener('touchstart', handleJoystickStart);
+    container.addEventListener('touchmove', handleJoystickMove);
+    container.addEventListener('touchend', handleJoystickEnd);
+    
+    container.addEventListener('mousedown', handleJoystickStart);
+    document.addEventListener('mousemove', handleJoystickMove);
+    document.addEventListener('mouseup', handleJoystickEnd);
 }
 
-function spawnTargets() {
-    // Initial spawn
-    for (let i = 0; i < 5; i++) {
-        setTimeout(() => spawnTarget(), i * 800);
+function handleJoystickStart(e) {
+    if (!gameState.isPlaying) return;
+    joystick.active = true;
+    const rect = e.currentTarget.getBoundingClientRect();
+    joystick.startX = rect.left + rect.width / 2;
+    joystick.startY = rect.top + rect.height / 2;
+}
+
+function handleJoystickMove(e) {
+    if (!joystick.active) return;
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    let deltaX = clientX - joystick.startX;
+    let deltaY = clientY - joystick.startY;
+    
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    if (distance > joystick.maxDistance) {
+        deltaX = (deltaX / distance) * joystick.maxDistance;
+        deltaY = (deltaY / distance) * joystick.maxDistance;
     }
+    
+    joystick.deltaX = deltaX / joystick.maxDistance;
+    joystick.deltaY = deltaY / joystick.maxDistance;
+    
+    const stick = document.getElementById('joystickStick');
+    stick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
 }
 
-function spawnTarget() {
+function handleJoystickEnd() {
+    joystick.active = false;
+    joystick.deltaX = 0;
+    joystick.deltaY = 0;
+    
+    const stick = document.getElementById('joystickStick');
+    stick.style.transform = 'translate(-50%, -50%)';
+}
+
+function startGame() {
+    gameState.isPlaying = true;
+    gameState.sunlight = 100;
+    gameState.water = 80;
+    gameState.health = 100;
+    gameState.growthLevel = 1;
+    gameState.dayTime = 0;
+    gameState.daysCount = 0;
+    gameState.bugsKilled = 0;
+    
+    plant.x = config.width / 2;
+    plant.y = config.height / 2;
+    
+    vines.length = 0;
+    bugs.length = 0;
+    particles.length = 0;
+    
+    // Spawn initial bugs
+    for (let i = 0; i < 3; i++) {
+        spawnBug();
+    }
+    
+    document.getElementById('gameOverlay').classList.remove('active');
+    document.getElementById('statsBox').style.display = 'none';
+    document.getElementById('overlayTitle').textContent = '🌱 VERDURA GROVE 🌿';
+    document.getElementById('overlayMessage').textContent = 'Survive as a living plant! Defend against bugs with vines.';
+    
+    updateUI();
+    gameLoop();
+}
+
+function spawnBug() {
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    
+    if (side === 0) { x = Math.random() * config.width; y = -20; }
+    else if (side === 1) { x = config.width + 20; y = Math.random() * config.height; }
+    else if (side === 2) { x = Math.random() * config.width; y = config.height + 20; }
+    else { x = -20; y = Math.random() * config.height; }
+    
+    bugs.push({
+        x, y,
+        radius: 12,
+        speed: 80 + Math.random() * 40,
+        color: '#FF0000'
+    });
+}
+
+function placeVine(e) {
+    if (!gameState.isPlaying || gameState.water < 10) return;
+    
+    const rect = config.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Don't place on plant
+    const dist = Math.sqrt((x - plant.x) ** 2 + (y - plant.y) ** 2);
+    if (dist < 50) return;
+    
+    gameState.water -= 10;
+    gameState.growthLevel++;
+    
+    vines.push({
+        x, y,
+        width: 40,
+        height: 40,
+        color: config.colors.vine
+    });
+    
+    createPlantParticles(x, y);
+    updateUI();
+}
+
+function update(dt) {
     if (!gameState.isPlaying) return;
     
-    const size = 30 + Math.random() * 30;
-    const x = size + Math.random() * (config.width - size * 2);
-    const y = size + Math.random() * (config.height * 0.5);
+    // Resource management
+    gameState.dayTime = (gameState.dayTime + dt * 0.08) % 2;
+    const isDay = gameState.dayTime < 1;
     
-    targets.push({
-        x: x,
-        y: y,
-        radius: size / 2,
-        dx: (Math.random() - 0.5) * 6,
-        dy: (Math.random() - 0.5) * 6,
-        color: colors.targets[Math.floor(Math.random() * colors.targets.length)],
-        points: Math.floor(100 / (size / 30)),
-        hit: false
-    });
+    gameState.sunlight = Math.max(0, Math.min(100, 
+        gameState.sunlight + (isDay ? 15 : -8) * dt
+    ));
     
-    // Spawn new target periodically
-    if (gameState.isPlaying && targets.length < 8) {
-        setTimeout(() => spawnTarget(), 2000 + Math.random() * 2000);
-    }
-}
-
-function gameLoop(timestamp) {
-    if (gameState.isPlaying && !gameState.isPaused) {
-        update();
-    }
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-function update() {
-    // Update bow angle based on mouse position
-    const dx = mouse.x - bow.x;
-    const dy = mouse.y - bow.y;
-    bow.angle = Math.atan2(dy, dx);
+    gameState.water = Math.max(0, gameState.water - 3 * dt);
     
-    // Update charge power
-    if (gameState.isCharging) {
-        gameState.chargePower = Math.min(gameState.chargePower + 2, gameState.maxPower);
-        document.getElementById('powerFill').style.width = gameState.chargePower + '%';
+    if (!isDay) {
+        gameState.health = Math.max(0, gameState.health - 2 * dt);
     }
     
-    // Update targets
-    targets.forEach((target, index) => {
-        if (target.hit) return;
+    if (gameState.sunlight > 50 && gameState.health < 100) {
+        gameState.health = Math.min(100, gameState.health + 8 * dt);
+    }
+    
+    // Update days count
+    gameState.daysCount = Math.floor(gameState.dayTime / 2);
+    
+    // Update plant movement
+    let moveX = 0, moveY = 0;
+    
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) moveX -= 1;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) moveX += 1;
+    if (keys['ArrowUp'] || keys['w'] || keys['W']) moveY -= 1;
+    if (keys['ArrowDown'] || keys['s'] || keys['S']) moveY += 1;
+    
+    if (joystick.active) {
+        moveX += joystick.deltaX;
+        moveY += joystick.deltaY;
+    }
+    
+    const magnitude = Math.sqrt(moveX * moveX + moveY * moveY);
+    if (magnitude > 0) {
+        moveX /= magnitude;
+        moveY /= magnitude;
+    }
+    
+    plant.x += moveX * plant.speed * dt;
+    plant.y += moveY * plant.speed * dt;
+    
+    plant.x = Math.max(plant.radius, Math.min(config.width - plant.radius, plant.x));
+    plant.y = Math.max(plant.radius, Math.min(config.height - plant.radius, plant.y));
+    
+    // Update bugs
+    bugs.forEach((bug, index) => {
+        const dx = plant.x - bug.x;
+        const dy = plant.y - bug.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
         
-        target.x += target.dx;
-        target.y += target.dy;
+        bug.x += (dx / dist) * bug.speed * dt;
+        bug.y += (dy / dist) * bug.speed * dt;
         
-        // Bounce off walls
-        if (target.x - target.radius < 0 || target.x + target.radius > config.width) {
-            target.dx *= -1;
-            target.x = Math.max(target.radius, Math.min(config.width - target.radius, target.x));
+        // Check collision with plant
+        if (dist < plant.radius + bug.radius) {
+            gameState.health = Math.max(0, gameState.health - 25);
+            createExplosion(bug.x, bug.y, '#FF0000');
+            bugs.splice(index, 1);
         }
         
-        if (target.y - target.radius < 0 || target.y + target.radius > config.height - 100) {
-            target.dy *= -1;
-            target.y = Math.max(target.radius, Math.min(config.height - 100 - target.radius, target.y));
-        }
-        
-        // Apply gravity
-        target.dy += 0.2;
-    });
-    
-    // Update arrows
-    arrows.forEach((arrow, index) => {
-        arrow.x += arrow.dx;
-        arrow.y += arrow.dy;
-        arrow.dy += 0.3; // Gravity
-        arrow.angle = Math.atan2(arrow.dy, arrow.dx);
-        arrow.life--;
-        
-        // Check collision with targets
-        targets.forEach(target => {
-            if (target.hit) return;
-            
-            const dist = Math.sqrt(
-                Math.pow(arrow.x - target.x, 2) + 
-                Math.pow(arrow.y - target.y, 2)
+        // Check collision with vines
+        vines.forEach((vine, vIndex) => {
+            const vDist = Math.sqrt(
+                (bug.x - vine.x) ** 2 + (bug.y - vine.y) ** 2
             );
-            
-            if (dist < target.radius) {
-                target.hit = true;
-                gameState.targetsHit++;
-                const points = target.points * gameState.combo;
-                gameState.score += points;
-                gameState.combo = Math.min(gameState.combo + 1, 10);
-                
-                createExplosion(target.x, target.y, target.color);
-                
-                // Show score popup
-                createScorePopup(target.x, target.y, '+' + points);
-                
-                // Remove target and spawn new one
-                setTimeout(() => {
-                    targets.splice(targets.indexOf(target), 1);
-                    if (gameState.isPlaying) {
-                        spawnTarget();
-                    }
-                }, 100);
-                
-                updateUI();
+            if (vDist < bug.radius + 20) {
+                gameState.bugsKilled++;
+                createExplosion(bug.x, bug.y, '#FF6B00');
+                bugs.splice(index, 1);
             }
         });
-        
-        // Remove arrow if off screen or life expired
-        if (arrow.x < -50 || arrow.x > config.width + 50 || 
-            arrow.y < -50 || arrow.y > config.height + 50 || 
-            arrow.life <= 0) {
-            arrows.splice(index, 1);
-            
-            // Reset combo if arrow missed
-            if (arrow.life > 0) {
-                gameState.combo = 1;
-                updateUI();
-            }
-        }
     });
     
+    // Spawn bugs
+    if (bugs.length < gameState.growthLevel + 2) {
+        if (Math.random() < 0.02) {
+            spawnBug();
+        }
+    }
+    
     // Update particles
-    particles.forEach((particle, index) => {
-        particle.x += particle.dx;
-        particle.y += particle.dy;
-        particle.dy += 0.1;
-        particle.life--;
-        particle.alpha = particle.life / particle.maxLife;
+    particles.forEach((p, index) => {
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life--;
+        p.alpha -= 0.02;
         
-        if (particle.life <= 0) {
+        if (p.life <= 0 || p.alpha <= 0) {
             particles.splice(index, 1);
         }
     });
     
-    // Remove hit targets
-    targets = targets.filter(t => !t.hit);
-    
-    // Check game over
-    if (gameState.arrows <= 0 && arrows.length === 0) {
+    // Game over
+    if (gameState.health <= 0) {
         gameOver();
     }
+    
+    updateUI();
 }
 
 function draw() {
     const ctx = config.ctx;
     
-    // Clear canvas with gradient
+    // Background
+    const isDay = gameState.dayTime < 1;
     const gradient = ctx.createLinearGradient(0, 0, 0, config.height);
-    gradient.addColorStop(0, '#0a0515');
-    gradient.addColorStop(1, '#1a0f2e');
+    if (isDay) {
+        gradient.addColorStop(0, '#2a5a2a');
+        gradient.addColorStop(1, '#1a4a1a');
+    } else {
+        gradient.addColorStop(0, '#0d1f0d');
+        gradient.addColorStop(1, '#051205');
+    }
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, config.width, config.height);
     
-    // Draw stars background
-    for (let i = 0; i < 50; i++) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5})`;
+    // Draw stars at night
+    if (!isDay) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        for (let i = 0; i < 50; i++) {
+            ctx.beginPath();
+            ctx.arc(
+                (i * 97) % config.width,
+                (i * 53) % config.height,
+                1, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
+    
+    // Draw vines
+    vines.forEach(vine => {
+        ctx.fillStyle = vine.color;
         ctx.fillRect(
-            (i * 97) % config.width,
-            (i * 53) % config.height,
-            2, 2
+            vine.x - vine.width / 2,
+            vine.y - vine.height / 2,
+            vine.width,
+            vine.height
         );
-    }
+        ctx.strokeStyle = '#144414';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(
+            vine.x - vine.width / 2,
+            vine.y - vine.height / 2,
+            vine.width,
+            vine.height
+        );
+    });
     
-    // Draw targets
-    targets.forEach(target => {
-        // Target shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    // Draw bugs
+    bugs.forEach(bug => {
+        ctx.fillStyle = bug.color;
         ctx.beginPath();
-        ctx.arc(target.x + 5, target.y + 5, target.radius, 0, Math.PI * 2);
+        ctx.arc(bug.x, bug.y, bug.radius, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Target
-        ctx.fillStyle = target.color;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = target.color;
-        ctx.beginPath();
-        ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        
-        // Target rings
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.strokeStyle = '#AA0000';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(target.x, target.y, target.radius * 0.6, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(target.x, target.y, target.radius * 0.3, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Target center
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(target.x, target.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Points label
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(target.points, target.x, target.y);
     });
     
-    // Draw arrows in flight
-    arrows.forEach(arrow => {
-        ctx.save();
-        ctx.translate(arrow.x, arrow.y);
-        ctx.rotate(arrow.angle);
-        
-        // Arrow shaft
-        ctx.fillStyle = colors.bow;
-        ctx.fillRect(-20, -2, 40, 4);
-        
-        // Arrow head
-        ctx.fillStyle = colors.arrow;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = colors.arrow;
-        ctx.beginPath();
-        ctx.moveTo(20, 0);
-        ctx.lineTo(10, -6);
-        ctx.lineTo(10, 6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        
-        // Arrow feathers
-        ctx.fillStyle = '#FF6B6B';
-        ctx.beginPath();
-        ctx.moveTo(-20, 0);
-        ctx.lineTo(-25, -5);
-        ctx.lineTo(-20, -2);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.fillStyle = '#4ECDC4';
-        ctx.beginPath();
-        ctx.moveTo(-20, 0);
-        ctx.lineTo(-25, 5);
-        ctx.lineTo(-20, 2);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.restore();
-    });
-    
-    // Draw bow
-    ctx.save();
-    ctx.translate(bow.x, bow.y);
-    ctx.rotate(bow.angle);
-    
-    // Bow body
-    ctx.strokeStyle = colors.bow;
-    ctx.lineWidth = 6;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = colors.bow;
+    // Draw plant
+    ctx.fillStyle = config.colors.plant;
     ctx.beginPath();
-    ctx.arc(0, 0, 40, -Math.PI * 0.6, Math.PI * 0.6);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    
-    // Bow string
-    const stringTension = gameState.isCharging ? gameState.chargePower / 5 : 0;
-    ctx.strokeStyle = colors.string;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-30, -25);
-    ctx.lineTo(-stringTension, 0);
-    ctx.lineTo(-30, 25);
+    ctx.arc(plant.x, plant.y, plant.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#00AA00';
+    ctx.lineWidth = 3;
     ctx.stroke();
     
-    // Draw arrow being charged
-    if (gameState.isCharging) {
-        ctx.save();
-        ctx.translate(-stringTension, 0);
-        
-        // Arrow shaft
-        ctx.fillStyle = colors.bow;
-        ctx.fillRect(-30, -2, 30, 4);
-        
-        // Arrow head
-        ctx.fillStyle = colors.arrow;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(-10, -5);
-        ctx.lineTo(-10, 5);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.restore();
-    }
-    
-    ctx.restore();
+    // Draw plant "eyes"
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(plant.x - 8, plant.y - 5, 3, 0, Math.PI * 2);
+    ctx.arc(plant.x + 8, plant.y - 5, 3, 0, Math.PI * 2);
+    ctx.fill();
     
     // Draw particles
-    particles.forEach(particle => {
-        ctx.globalAlpha = particle.alpha;
-        ctx.fillStyle = particle.color;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = particle.color;
+    particles.forEach(p => {
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
-        
-        if (particle.text) {
-            ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = '#FFD700';
-            ctx.textAlign = 'center';
-            ctx.fillText(particle.text, particle.x, particle.y);
-        }
     });
     ctx.globalAlpha = 1;
 }
 
-function createExplosion(x, y, color) {
-    for (let i = 0; i < 30; i++) {
+function createExplosion(x, y, baseColor) {
+    for (let i = 0; i < 15; i++) {
+        const angle = (Math.PI * 2 * i) / 15;
+        const speed = 2 + Math.random() * 3;
         particles.push({
-            x: x,
-            y: y,
-            dx: (Math.random() - 0.5) * 10,
-            dy: (Math.random() - 0.5) * 10,
-            size: Math.random() * 4 + 2,
-            color: color,
-            life: 60,
-            maxLife: 60,
-            alpha: 1
+            x, y,
+            dx: Math.cos(angle) * speed,
+            dy: Math.sin(angle) * speed,
+            size: 3 + Math.random() * 3,
+            color: baseColor,
+            alpha: 1,
+            life: 30
         });
     }
 }
 
-function createScorePopup(x, y, text) {
-    particles.push({
-        x: x,
-        y: y,
-        dx: 0,
-        dy: -2,
-        size: 0,
-        color: '#FFD700',
-        life: 60,
-        maxLife: 60,
-        alpha: 1,
-        text: text
-    });
+function createPlantParticles(x, y) {
+    for (let i = 0; i < 10; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 2;
+        particles.push({
+            x, y,
+            dx: Math.cos(angle) * speed,
+            dy: Math.sin(angle) * speed,
+            size: 2 + Math.random() * 2,
+            color: config.colors.particle[Math.floor(Math.random() * config.colors.particle.length)],
+            alpha: 1,
+            life: 25
+        });
+    }
 }
 
-function shootArrow() {
-    if (gameState.arrows <= 0 || !gameState.isPlaying) return;
+function updateUI() {
+    document.getElementById('sunlightValue').textContent = Math.floor(gameState.sunlight);
+    document.getElementById('sunlightBar').style.width = gameState.sunlight + '%';
     
-    const power = gameState.chargePower / 3.5;
-    const arrow = {
-        x: bow.x,
-        y: bow.y,
-        dx: Math.cos(bow.angle) * power,
-        dy: Math.sin(bow.angle) * power,
-        angle: bow.angle,
-        life: 300
-    };
+    document.getElementById('waterValue').textContent = Math.floor(gameState.water);
+    document.getElementById('waterBar').style.width = gameState.water + '%';
     
-    arrows.push(arrow);
-    gameState.arrows--;
-    gameState.arrowsShot++;
-    gameState.chargePower = 0;
-    gameState.isCharging = false;
+    document.getElementById('healthValue').textContent = Math.floor(gameState.health);
+    document.getElementById('healthBar').style.width = gameState.health + '%';
     
-    document.getElementById('powerMeter').classList.remove('active');
-    document.getElementById('powerFill').style.width = '0%';
+    document.getElementById('growthLevel').textContent = gameState.growthLevel;
+    document.getElementById('daysCount').textContent = gameState.daysCount;
     
-    updateUI();
-}
-
-function handleMouseMove(e) {
-    const rect = config.canvas.getBoundingClientRect();
-    mouse.x = e.clientX - rect.left;
-    mouse.y = e.clientY - rect.top;
-}
-
-function handleMouseDown(e) {
-    if (!gameState.isPlaying || gameState.arrows <= 0) return;
-    
-    e.preventDefault();
-    gameState.isCharging = true;
-    gameState.chargePower = 0;
-    document.getElementById('powerMeter').classList.add('active');
-}
-
-function handleMouseUp(e) {
-    if (!gameState.isPlaying || !gameState.isCharging) return;
-    
-    e.preventDefault();
-    shootArrow();
-}
-
-function handleTouchStart(e) {
-    if (!gameState.isPlaying || gameState.arrows <= 0) return;
-    
-    e.preventDefault();
-    const rect = config.canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    mouse.x = touch.clientX - rect.left;
-    mouse.y = touch.clientY - rect.top;
-    
-    gameState.isCharging = true;
-    gameState.chargePower = 0;
-    document.getElementById('powerMeter').classList.add('active');
-}
-
-function handleTouchMove(e) {
-    if (!gameState.isPlaying) return;
-    
-    e.preventDefault();
-    const rect = config.canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    mouse.x = touch.clientX - rect.left;
-    mouse.y = touch.clientY - rect.top;
-}
-
-function handleTouchEnd(e) {
-    if (!gameState.isPlaying || !gameState.isCharging) return;
-    
-    e.preventDefault();
-    shootArrow();
+    const dayNight = document.getElementById('dayNight');
+    const isDay = gameState.dayTime < 1;
+    dayNight.querySelector('.label').textContent = isDay ? '☀️ DAY' : '🌙 NIGHT';
+    dayNight.querySelector('.label').style.color = isDay ? '#FFD700' : '#87CEEB';
 }
 
 function gameOver() {
     gameState.isPlaying = false;
     
-    // Update high score
-    if (gameState.score > gameState.highScore) {
-        gameState.highScore = gameState.score;
-        localStorage.setItem('arrowStrikeHighScore', gameState.highScore);
-    }
-    
-    // Calculate accuracy
-    const accuracy = gameState.arrowsShot > 0 ? 
-        Math.floor((gameState.targetsHit / gameState.arrowsShot) * 100) : 0;
-    
-    // Show game over screen
-    document.getElementById('finalScore').textContent = gameState.score;
-    document.getElementById('targetsHit').textContent = gameState.targetsHit;
-    document.getElementById('accuracy').textContent = accuracy + '%';
-    document.getElementById('finalHighScore').textContent = gameState.highScore;
+    document.getElementById('overlayTitle').textContent = '🌱 YOUR GROVE DIED... 🌿';
+    document.getElementById('overlayMessage').textContent = 'The bugs overwhelmed your defenses!';
     document.getElementById('statsBox').style.display = 'block';
-    
-    const title = gameState.score > gameState.highScore ? 
-        '🏆 NEW HIGH SCORE! 🏆' : '🎯 GAME OVER 🎯';
-    const message = gameState.score > gameState.highScore ? 
-        'Perfect shot! New record!' : 
-        'Keep practicing your aim!';
-    
-    showOverlay(title, message);
-}
-
-function showOverlay(title, message) {
-    document.getElementById('overlayTitle').textContent = title;
-    document.getElementById('overlayMessage').textContent = message;
+    document.getElementById('finalGrowth').textContent = gameState.growthLevel;
+    document.getElementById('finalDays').textContent = gameState.daysCount;
+    document.getElementById('bugsKilled').textContent = gameState.bugsKilled;
     document.getElementById('gameOverlay').classList.add('active');
 }
 
-function hideOverlay() {
-    document.getElementById('gameOverlay').classList.remove('active');
-}
-
-function updateUI() {
-    document.getElementById('score').textContent = gameState.score;
-    document.getElementById('arrows').textContent = gameState.arrows;
-    document.getElementById('combo').textContent = 'x' + gameState.combo;
-    document.getElementById('highScore').textContent = gameState.highScore;
+let lastTime = 0;
+function gameLoop(timestamp = 0) {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+    lastTime = timestamp;
+    
+    update(dt);
+    draw();
+    
+    requestAnimationFrame(gameLoop);
 }

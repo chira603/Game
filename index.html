@@ -2,97 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏹 Arrow Strike - Archery Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌱 Verdura Grove - Plant Survival Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
+        <!-- Resource HUD -->
         <div class="game-hud">
-            <div class="hud-left">
-                <div class="stat-box">
-                    <span class="label">SCORE</span>
-                    <span class="value" id="score">0</span>
+            <div class="resource-bars">
+                <div class="resource-bar">
+                    <span class="resource-label">☀️ Sunlight</span>
+                    <div class="bar-container">
+                        <div class="bar-fill sunlight" id="sunlightBar" style="width: 100%"></div>
+                    </div>
+                    <span class="resource-value" id="sunlightValue">100</span>
                 </div>
-                <div class="stat-box">
-                    <span class="label">ARROWS</span>
-                    <span class="value" id="arrows">10</span>
+                <div class="resource-bar">
+                    <span class="resource-label">💧 Water</span>
+                    <div class="bar-container">
+                        <div class="bar-fill water" id="waterBar" style="width: 80%"></div>
+                    </div>
+                    <span class="resource-value" id="waterValue">80</span>
+                </div>
+                <div class="resource-bar">
+                    <span class="resource-label">❤️ Health</span>
+                    <div class="bar-container">
+                        <div class="bar-fill health" id="healthBar" style="width: 100%"></div>
+                    </div>
+                    <span class="resource-value" id="healthValue">100</span>
                 </div>
             </div>
-            <div class="hud-right">
-                <div class="stat-box">
-                    <span class="label">COMBO</span>
-                    <span class="value combo" id="combo">x1</span>
+            <div class="game-info">
+                <div class="info-item">
+                    <span class="label">Growth</span>
+                    <span class="value" id="growthLevel">1</span>
                 </div>
-                <div class="stat-box">
-                    <span class="label">HIGH SCORE</span>
-                    <span class="value" id="highScore">0</span>
+                <div class="info-item day-night" id="dayNight">
+                    <span class="label">☀️ DAY</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Days</span>
+                    <span class="value" id="daysCount">0</span>
                 </div>
             </div>
         </div>
         
         <canvas id="gameCanvas"></canvas>
         
-        <div class="aim-indicator" id="aimIndicator">
-            <div class="crosshair"></div>
-        </div>
-        
-        <div class="power-meter" id="powerMeter">
-            <div class="power-label">POWER</div>
-            <div class="power-bar">
-                <div class="power-fill" id="powerFill"></div>
+        <!-- Virtual Joystick -->
+        <div class="joystick-container" id="joystickContainer">
+            <div class="joystick-base">
+                <div class="joystick-stick" id="joystickStick"></div>
             </div>
         </div>
         
-        <div class="game-overlay" id="gameOverlay">
+        <!-- Instructions -->
+        <div class="instructions">
+            <p>🕹️ Move or Arrow Keys • 🌿 Tap to Plant Vine (10💧)</p>
+        </div>
+        
+        <div class="game-overlay active" id="gameOverlay">
             <div class="overlay-content">
-                <h1 id="overlayTitle">🏹 ARROW STRIKE 🎯</h1>
-                <p id="overlayMessage">Master the art of archery!</p>
+                <h1 id="overlayTitle">🌱 VERDURA GROVE 🌿</h1>
+                <p id="overlayMessage">Survive as a living plant! Defend against bugs with vines.</p>
+                
                 <div class="stats-box" id="statsBox" style="display: none;">
                     <div class="stat-row">
-                        <span>Final Score:</span>
-                        <span id="finalScore">0</span>
+                        <span>Max Growth Level:</span>
+                        <span id="finalGrowth">0</span>
                     </div>
                     <div class="stat-row">
-                        <span>Targets Hit:</span>
-                        <span id="targetsHit">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Accuracy:</span>
-                        <span id="accuracy">0%</span>
+                        <span>Days Survived:</span>
+                        <span id="finalDays">0</span>
                     </div>
                     <div class="stat-row highlight">
-                        <span>High Score:</span>
-                        <span id="finalHighScore">0</span>
+                        <span>Bugs Defeated:</span>
+                        <span id="bugsKilled">0</span>
                     </div>
                 </div>
+                
                 <div class="controls-info">
                     <h3>🎮 How to Play</h3>
-                    <p>🖱️ <strong>Move Mouse</strong> - Aim your bow</p>
-                    <p>⬇️ <strong>Hold Mouse</strong> - Charge power</p>
-                    <p>⬆️ <strong>Release Mouse</strong> - Shoot arrow</p>
-                    <p>📱 <strong>Touch & Drag</strong> - Aim and shoot</p>
-                    <p class="tip">💡 Tip: Hit moving targets for bonus points!</p>
+                    <p><strong>Move:</strong> Use virtual joystick (mobile) or arrow keys (desktop)</p>
+                    <p><strong>Defend:</strong> Tap/click anywhere to plant defensive vines (costs 10 water)</p>
+                    <p><strong>Survive:</strong> Avoid bugs, manage resources, survive day & night cycles</p>
+                    <p class="tip">💡 Sunlight increases during day, health decreases at night!</p>
                 </div>
-                <button class="btn-primary" id="startBtn">START SHOOTING</button>
+                
+                <button class="btn-primary" id="startBtn">🌱 SCATTER SEEDS & START</button>
+                
                 <div class="features-info">
-                    <h3>✨ Features</h3>
+                    <h3>🌿 Game Features</h3>
                     <div class="feature-grid">
                         <div class="feature-item">
-                            <span class="icon">🎯</span>
-                            <span>Multiple target types</span>
+                            <span class="icon">☀️</span>
+                            <span>Day/Night cycle</span>
                         </div>
                         <div class="feature-item">
-                            <span class="icon">💥</span>
-                            <span>Explosive combos</span>
+                            <span class="icon">💧</span>
+                            <span>Resource management</span>
                         </div>
                         <div class="feature-item">
-                            <span class="icon">⚡</span>
-                            <span>Speed bonuses</span>
+                            <span class="icon">🐛</span>
+                            <span>Attacking bugs</span>
                         </div>
                         <div class="feature-item">
-                            <span class="icon">🏆</span>
-                            <span>High score system</span>
+                            <span class="icon">🌳</span>
+                            <span>Defense towers</span>
                         </div>
                     </div>
                 </div>

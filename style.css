@@ -8,9 +8,9 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(180deg, #0a0e27 0%, #1a1147 25%, #2d1b3d 50%, #1f1535 75%, #0f0a1e 100%);
+    background: linear-gradient(180deg, #1a3a1a 0%, #0d2b0d 50%, #051205 100%);
     background-size: 100% 200%;
-    animation: gradientShift 20s ease infinite;
+    animation: gradientShift 30s ease infinite;
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -24,7 +24,7 @@ body {
     50% { background-position: 0% 100%; }
 }
 
-/* Animated starfield */
+/* Animated leaves/particles */
 body::before {
     content: '';
     position: absolute;
@@ -33,68 +33,20 @@ body::before {
     right: 0;
     bottom: 0;
     background-image: 
-        radial-gradient(2px 2px at 20% 30%, white, transparent),
-        radial-gradient(2px 2px at 60% 70%, white, transparent),
-        radial-gradient(1px 1px at 50% 50%, white, transparent),
-        radial-gradient(1px 1px at 80% 10%, white, transparent),
-        radial-gradient(2px 2px at 90% 60%, white, transparent),
-        radial-gradient(1px 1px at 33% 80%, white, transparent),
-        radial-gradient(1px 1px at 15% 65%, white, transparent);
-    background-size: 200% 200%, 200% 200%, 300% 300%, 400% 400%, 250% 250%, 350% 350%, 450% 450%;
-    background-position: 0% 0%, 40% 60%, 100% 100%, 50% 50%, 80% 20%, 30% 70%, 60% 40%;
-    animation: twinkle 8s ease-in-out infinite, moveStars 40s linear infinite;
-    opacity: 0.7;
+        radial-gradient(2px 2px at 20% 30%, rgba(144, 238, 144, 0.6), transparent),
+        radial-gradient(3px 3px at 60% 70%, rgba(34, 139, 34, 0.5), transparent),
+        radial-gradient(2px 2px at 50% 50%, rgba(107, 255, 107, 0.4), transparent),
+        radial-gradient(2px 2px at 80% 10%, rgba(50, 205, 50, 0.6), transparent);
+    background-size: 200% 200%, 250% 250%, 300% 300%, 350% 350%;
+    background-position: 0% 0%, 40% 60%, 100% 100%, 50% 50%;
+    animation: floatLeaves 20s ease-in-out infinite;
+    opacity: 0.4;
     pointer-events: none;
 }
 
-@keyframes twinkle {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
-}
-
-@keyframes moveStars {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(-50px, -50px); }
-}
-
-/* Shooting stars */
-body::after {
-    content: '';
-    position: absolute;
-    top: -100px;
-    left: -100px;
-    width: 2px;
-    height: 2px;
-    background: white;
-    box-shadow: 
-        200px 300px 2px 1px rgba(255, 255, 255, 0.8),
-        400px 150px 1px 0px rgba(255, 255, 255, 0.9),
-        600px 400px 2px 1px rgba(255, 200, 255, 0.7),
-        800px 100px 1px 0px rgba(200, 255, 255, 0.8),
-        1000px 350px 2px 1px rgba(255, 255, 255, 0.9);
-    animation: shootingStar 8s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes shootingStar {
-    0% {
-        transform: translateY(0) translateX(0) rotate(-45deg);
-        opacity: 0;
-    }
-    5% {
-        opacity: 1;
-    }
-    50% {
-        transform: translateY(1000px) translateX(1000px) rotate(-45deg);
-        opacity: 0;
-    }
-    51% {
-        transform: translateY(0) translateX(0) rotate(-45deg);
-        opacity: 0;
-    }
-    100% {
-        opacity: 0;
-    }
+@keyframes floatLeaves {
+    0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+    50% { transform: translate(30px, -30px); opacity: 0.6; }
 }
 
 /* Ambient glow effect */
@@ -106,27 +58,22 @@ body::after {
     width: 600px;
     height: 600px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 107, 107, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(107, 255, 107, 0.15) 0%, transparent 70%);
     transform: translate(-50%, -50%);
-    animation: pulseGlow 6s ease-in-out infinite;
+    animation: pulseGlow 8s ease-in-out infinite;
     pointer-events: none;
     z-index: 0;
 }
 
 @keyframes pulseGlow {
     0%, 100% { 
-        opacity: 0.3;
+        opacity: 0.2;
         transform: translate(-50%, -50%) scale(1);
     }
     50% { 
-        opacity: 0.6;
-        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1.2);
     }
-}
-
-@keyframes bgPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
 }
 
 .container {
@@ -140,144 +87,184 @@ body::after {
     justify-content: center;
 }
 
+/* HUD Styling */
 .game-hud {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 20px;
+    top: 10px;
+    left: 10px;
+    right: 10px;
     z-index: 10;
     pointer-events: none;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-}
-
-.hud-left, .hud-right {
-    display: flex;
     gap: 15px;
     flex-wrap: wrap;
 }
 
-.stat-box {
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    padding: 12px 20px;
-    border-radius: 15px;
-    border: 2px solid rgba(255, 107, 107, 0.5);
-    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+.resource-bars {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    min-width: 100px;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px;
+    border-radius: 15px;
+    border: 2px solid rgba(107, 255, 107, 0.4);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
-.label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
+.resource-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.value {
+.resource-label {
     color: #fff;
-    font-size: 28px;
+    font-size: 13px;
     font-weight: bold;
-    text-shadow: 0 0 15px rgba(255, 107, 107, 0.8);
+    min-width: 90px;
+}
+
+.bar-container {
+    width: 150px;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 9px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 9px;
+}
+
+.bar-fill.sunlight {
+    background: linear-gradient(90deg, #FFD700, #FFA500);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+}
+
+.bar-fill.water {
+    background: linear-gradient(90deg, #00BFFF, #1E90FF);
+    box-shadow: 0 0 10px rgba(30, 144, 255, 0.6);
+}
+
+.bar-fill.health {
+    background: linear-gradient(90deg, #FF6B6B, #FF1744);
+    box-shadow: 0 0 10px rgba(255, 23, 68, 0.6);
+}
+
+.resource-value {
+    color: #FFD700;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 30px;
+    text-align: right;
     font-family: 'Courier New', monospace;
 }
 
-.value.combo {
-    color: #FFD700;
-    text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+.game-info {
+    display: flex;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px;
+    border-radius: 15px;
+    border: 2px solid rgba(107, 255, 107, 0.4);
 }
 
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+}
+
+.info-item .label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.info-item .value {
+    color: #6BFF6B;
+    font-size: 20px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+.day-night .label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #FFD700;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* Canvas */
 #gameCanvas {
-    background: linear-gradient(180deg, #0a0515 0%, #1a0f2e 100%);
-    box-shadow: 0 0 80px rgba(255, 107, 107, 0.3);
-    border: 3px solid rgba(255, 107, 107, 0.3);
+    background: linear-gradient(135deg, #1a3a1a 0%, #0d2b0d 100%);
+    box-shadow: 0 0 60px rgba(107, 255, 107, 0.3);
+    border: 3px solid rgba(107, 255, 107, 0.3);
     border-radius: 10px;
     cursor: crosshair;
 }
 
-.aim-indicator {
-    position: fixed;
-    pointer-events: none;
-    z-index: 100;
-    display: none;
+/* Joystick */
+.joystick-container {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    z-index: 10;
 }
 
-.crosshair {
+.joystick-base {
+    width: 100px;
+    height: 100px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 3px solid rgba(107, 255, 107, 0.5);
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.joystick-stick {
     width: 40px;
     height: 40px;
-    position: relative;
-    transform: translate(-50%, -50%);
-}
-
-.crosshair::before,
-.crosshair::after {
-    content: '';
+    background: linear-gradient(135deg, #6BFF6B, #32CD32);
+    border-radius: 50%;
     position: absolute;
-    background: rgba(255, 107, 107, 0.8);
-    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
-}
-
-.crosshair::before {
-    width: 2px;
-    height: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.crosshair::after {
-    width: 100%;    height: 2px;
     top: 50%;
-    transform: translateY(-50%);
-}
-
-.power-meter {
-    position: absolute;
-    bottom: 30px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 10px rgba(107, 255, 107, 0.6);
+    transition: all 0.1s ease;
+}
+
+/* Instructions */
+.instructions {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 15px;
+    border-radius: 10px;
+    border: 2px solid rgba(107, 255, 107, 0.3);
     z-index: 10;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
 }
 
-.power-meter.active {
-    opacity: 1;
-}
-
-.power-label {
+.instructions p {
     color: #fff;
     font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 5px;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+    margin: 2px 0;
 }
 
-.power-bar {
-    width: 200px;
-    height: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid rgba(255, 107, 107, 0.5);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
-}
-
-.power-fill {
-    height: 100%;
-    width: 0;
-    background: linear-gradient(90deg, #FFD700 0%, #FF6B6B 50%, #FF1744 100%);
-    transition: width 0.1s linear;
-    box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
-}
-
+/* Overlay */
 .game-overlay {
     position: fixed;
     top: 0;
@@ -301,15 +288,15 @@ body::after {
 }
 
 .overlay-content {
-    background: linear-gradient(135deg, rgba(255, 107, 107, 0.95) 0%, rgba(139, 69, 139, 0.95) 100%);
+    background: linear-gradient(135deg, rgba(34, 139, 34, 0.95) 0%, rgba(0, 100, 0, 0.95) 100%);
     padding: 40px;
     border-radius: 25px;
     text-align: center;
     max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8);
+    border: 3px solid rgba(107, 255, 107, 0.5);
     animation: slideUp 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
@@ -325,20 +312,18 @@ body::after {
 }
 
 #overlayTitle {
-    color: #fff;
-    font-size: 52px;
+    color: #6BFF6B;
+    font-size: 48px;
     margin-bottom: 15px;
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+    text-shadow: 0 0 30px rgba(107, 255, 107, 0.8);
     font-weight: 900;
-    letter-spacing: 2px;
 }
 
 #overlayMessage {
     color: rgba(255, 255, 255, 0.95);
-    font-size: 20px;
+    font-size: 18px;
     margin-bottom: 25px;
     line-height: 1.6;
-    font-weight: 500;
 }
 
 .stats-box {
@@ -346,7 +331,7 @@ body::after {
     padding: 20px;
     border-radius: 15px;
     margin: 20px 0;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(107, 255, 107, 0.3);
 }
 
 .stat-row {
@@ -363,7 +348,7 @@ body::after {
 }
 
 .stat-row.highlight {
-    color: #FFD700;
+    color: #6BFF6B;
     font-weight: bold;
     font-size: 22px;
 }
@@ -377,7 +362,7 @@ body::after {
 }
 
 .controls-info h3 {
-    color: #fff;
+    color: #6BFF6B;
     margin-bottom: 15px;
     font-size: 20px;
     text-align: center;
@@ -397,24 +382,24 @@ body::after {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    background: linear-gradient(135deg, #6BFF6B 0%, #32CD32 100%);
     color: #000;
     border: none;
     padding: 18px 50px;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 900;
     border-radius: 50px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+    box-shadow: 0 8px 25px rgba(107, 255, 107, 0.5);
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     margin: 20px 0;
 }
 
 .btn-primary:hover {
     transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 12px 40px rgba(255, 215, 0, 0.7);
+    box-shadow: 0 12px 40px rgba(107, 255, 107, 0.7);
 }
 
 .btn-primary:active {
@@ -426,7 +411,7 @@ body::after {
 }
 
 .features-info h3 {
-    color: #fff;
+    color: #6BFF6B;
     margin-bottom: 15px;
     font-size: 20px;
 }
@@ -446,52 +431,100 @@ body::after {
     gap: 10px;
     color: #fff;
     font-size: 14px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(107, 255, 107, 0.2);
 }
 
 .feature-item .icon {
     font-size: 24px;
 }
 
+/* Mobile Responsive */
 @media (max-width: 768px) {
     .game-hud {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
+        top: 5px;
+        left: 5px;
+        right: 5px;
     }
     
-    .hud-left, .hud-right {
-        width: 100%;
-        justify-content: center;
+    .resource-bars {
+        padding: 8px;
+        gap: 5px;
     }
     
-    .stat-box {
-        padding: 8px 15px;
-        min-width: 80px;
+    .resource-label {
+        font-size: 11px;
+        min-width: 75px;
     }
     
-    .value {
-        font-size: 20px;
+    .bar-container {
+        width: 100px;
+        height: 14px;
+    }
+    
+    .resource-value {
+        font-size: 12px;
+    }
+    
+    .game-info {
+        flex-direction: row;
+        padding: 8px;
+        gap: 5px;
+    }
+    
+    .info-item .value {
+        font-size: 16px;
+    }
+    
+    .joystick-container {
+        bottom: 20px;
+        left: 20px;
+    }
+    
+    .joystick-base {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .joystick-stick {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .instructions {
+        bottom: 10px;
+        right: 10px;
+        padding: 8px 12px;
+    }
+    
+    .instructions p {
+        font-size: 10px;
     }
     
     #overlayTitle {
-        font-size: 36px;
+        font-size: 32px;
+    }
+    
+    #overlayMessage {
+        font-size: 15px;
     }
     
     .overlay-content {
-        padding: 30px 20px;
+        padding: 25px 15px;
         margin: 10px;
+    }
+    
+    .btn-primary {
+        padding: 14px 30px;
+        font-size: 16px;
     }
     
     .feature-grid {
         grid-template-columns: 1fr;
     }
     
-    .btn-primary {
-        padding: 15px 35px;
-        font-size: 18px;
-    }
-    
-    .power-bar {
-        width: 150px;
+    #gameCanvas {
+        border-width: 2px;
     }
 }

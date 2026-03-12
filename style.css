@@ -253,7 +253,7 @@ body::before {
 /* Joystick */
 .joystick-container {
     position: absolute;
-    bottom: 40px;
+    bottom: 120px;
     left: 40px;
     z-index: 10;
 }
@@ -302,7 +302,7 @@ body::before {
 /* Fire Button */
 .fire-button {
     position: absolute;
-    bottom: 40px;
+    bottom: 120px;
     right: 40px;
     width: 100px;
     height: 100px;
@@ -817,7 +817,7 @@ body::before {
     }
     
     .joystick-container {
-        bottom: 20px;
+        bottom: 100px;
         left: 20px;
     }
     
@@ -844,7 +844,7 @@ body::before {
     .fire-button {
         width: 85px;
         height: 85px;
-        bottom: 20px;
+        bottom: 100px;
         right: 20px;
     }
     

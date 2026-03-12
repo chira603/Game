@@ -70,6 +70,10 @@ const powerups = [];
 // Keyboard
 const keys = {};
 
+// Performance settings
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const performanceMode = isMobile; // Use low settings on mobile
+
 // Initialize
 window.onload = () => {
     config.canvas = document.getElementById('gameCanvas');
@@ -398,7 +402,8 @@ function shootBullet(e) {
 }
 
 function createMuzzleFlash(x, y, angle) {
-    for (let i = 0; i < 8; i++) {
+    const particleCount = performanceMode ? 3 : 8;
+    for (let i = 0; i < particleCount; i++) {
         const spreadAngle = angle + (Math.random() - 0.5) * 0.5;
         particles.push({
             x: x + Math.cos(angle) * 35,
@@ -440,8 +445,9 @@ function spawnPowerup() {
     });
     
     // Spawn announcement particles
-    for (let i = 0; i < 30; i++) {
-        const angle = (Math.PI * 2 * i) / 30;
+    const particleCount = performanceMode ? 10 : 30;
+    for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 * i) / particleCount;
         particles.push({
             x: x,
             y: y,
@@ -469,7 +475,8 @@ function activatePowerup(type) {
         const killedCount = devils.length;
         devils.forEach(devil => {
             // Create massive explosion particles at each devil location
-            for (let i = 0; i < 50; i++) {
+            const particleCount = performanceMode ? 15 : 50;
+            for (let i = 0; i < particleCount; i++) {
                 const angle = Math.random() * Math.PI * 2;
                 const speed = 3 + Math.random() * 8;
                 particles.push({
@@ -519,8 +526,9 @@ function activatePowerup(type) {
         });
         
         // Celebration particles around player
-        for (let i = 0; i < 40; i++) {
-            const angle = (Math.PI * 2 * i) / 40;
+        const particleCount = performanceMode ? 15 : 40;
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount;
             const speed = 3 + Math.random() * 3;
             particles.push({
                 x: gangLeader.x,
@@ -823,7 +831,7 @@ function draw() {
         ctx.fillRect(0, 0, config.width, config.height);
     }
     
-    if (gameState.scaryLevel >= 2) {
+    if (gameState.scaryLevel >= 2 && !performanceMode) {
         // Blood drip effects from top
         for (let i = 0; i < 8; i++) {
             const x = (i * 120 + Date.now() * 0.02) % config.width;
@@ -919,8 +927,8 @@ function draw() {
         ctx.arc(devil.radius * 0.3, -devil.radius * 0.2, 6, 0, Math.PI * 2);
         ctx.fill();
         
-        const eyeGlow = 8 + scaryLevel * 8;
-        const eyePulse = scaryLevel >= 2 ? Math.sin(Date.now() * 0.01) * 2 : 0;
+        const eyeGlow = performanceMode ? 4 : (8 + scaryLevel * 8);
+        const eyePulse = (scaryLevel >= 2 && !performanceMode) ? Math.sin(Date.now() * 0.01) * 2 : 0;
         ctx.fillStyle = scaryLevel >= 3 ? '#FF0000' : '#FF0000';
         ctx.shadowBlur = eyeGlow + eyePulse;
         ctx.shadowColor = '#FF0000';
@@ -930,7 +938,7 @@ function draw() {
         ctx.fill();
         
         // Extra evil aura for hell mode
-        if (scaryLevel >= 3) {
+        if (scaryLevel >= 3 && !performanceMode) {
             ctx.shadowBlur = 20;
             ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
             ctx.beginPath();
@@ -989,7 +997,7 @@ function draw() {
     // Draw bullets
     bullets.forEach(bullet => {
         ctx.fillStyle = '#FFA500';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = performanceMode ? 0 : 10;
         ctx.shadowColor = '#FFA500';
         ctx.beginPath();
         ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
@@ -1048,7 +1056,7 @@ function draw() {
         }
         
         // Icon emoji (larger and with shadow)
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = performanceMode ? 0 : 5;
         ctx.shadowColor = '#000';
         ctx.font = 'bold 28px Arial';
         ctx.textAlign = 'center';
@@ -1068,7 +1076,7 @@ function draw() {
         const pulse = Math.sin(Date.now() * 0.003 + idx) * 5;
         
         ctx.save();
-        ctx.shadowBlur = 30;
+        ctx.shadowBlur = performanceMode ? 10 : 30;
         ctx.shadowColor = powerup.color;
         ctx.strokeStyle = powerup.color;
         ctx.lineWidth = 4;
@@ -1083,7 +1091,7 @@ function draw() {
         const orbitY = Math.sin(orbitAngle) * auraRadius;
         
         ctx.globalAlpha = 1;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = performanceMode ? 0 : 10;
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1124,7 +1132,7 @@ function draw() {
     // Thick gold chain
     ctx.strokeStyle = '#FFD700';
     ctx.lineWidth = 5;
-    ctx.shadowBlur = 5;
+    ctx.shadowBlur = performanceMode ? 0 : 5;
     ctx.shadowColor = '#FFD700';
     ctx.beginPath();
     ctx.arc(0, 8, 10, 0, Math.PI * 2);
@@ -1205,7 +1213,7 @@ function draw() {
         const shieldRadius = gangLeader.radius + 15 + Math.sin(Date.now() * 0.005) * 3;
         
         // Shield glow
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = performanceMode ? 5 : 20;
         ctx.shadowColor = '#00FFFF';
         
         // Shield circle
@@ -1233,7 +1241,7 @@ function draw() {
     particles.forEach(p => {
         ctx.globalAlpha = p.alpha;
         ctx.fillStyle = p.color;
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = performanceMode ? 0 : 5;
         ctx.shadowColor = p.color;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);

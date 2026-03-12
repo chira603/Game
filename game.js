@@ -577,6 +577,9 @@ function update(dt) {
     if (magnitude > 0) {
         moveX /= magnitude;
         moveY /= magnitude;
+        
+        // Update gun direction to face movement direction
+        gangLeader.angle = Math.atan2(moveY, moveX);
     }
     
     // Apply speed boost if active

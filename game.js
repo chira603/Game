@@ -24,7 +24,7 @@ const gangLeader = {
     x: 400,
     y: 300,
     radius: 30,
-    speed: 280,
+    speed: 220,
     dx: 0,
     dy: 0,
     angle: 0 // for direction facing
@@ -35,12 +35,25 @@ const joystick = {
     active: false,
     startX: 0,
     startY: 0,
-    currentX: 0,
-    currentY: 0,
     deltaX: 0,
     deltaY: 0,
-    maxDistance: 70
+    maxDistance: 70,
+    touchId: null
 };
+
+// Aim Joystick (right side)
+const aimJoystick = {
+    active: false,
+    startX: 0,
+    startY: 0,
+    deltaX: 0,
+    deltaY: 0,
+    maxDistance: 70,
+    touchId: null
+};
+
+let lastFireTime = 0;
+const fireDelay = 150; // ms between shots
 
 // Game State
 const gameState = {
@@ -80,8 +93,16 @@ window.onload = () => {
     config.ctx = config.canvas.getContext('2d');
     
     const isMobile = window.innerWidth < 768;
-    config.width = isMobile ? window.innerWidth - 10 : 800;
-    config.height = isMobile ? window.innerHeight - 150 : 600;
+    const isLandscape = window.innerWidth > window.innerHeight;
+    
+    // Landscape mode: wider canvas for bigger zone coverage
+    if (isLandscape) {
+        config.width = isMobile ? window.innerWidth - 10 : 1200;
+        config.height = isMobile ? window.innerHeight - 100 : 600;
+    } else {
+        config.width = isMobile ? window.innerWidth - 10 : 800;
+        config.height = isMobile ? window.innerHeight - 150 : 600;
+    }
     
     // Reduce canvas resolution on mobile for performance
     const scale = performanceMode ? 0.7 : 1;
@@ -96,9 +117,6 @@ window.onload = () => {
     
     // Event listeners
     document.getElementById('startBtn').addEventListener('click', startGame);
-    
-    // Setup fire button
-    setupFireButton();
     
     // Track mouse for aiming
     config.canvas.addEventListener('mousemove', (e) => {
@@ -127,12 +145,44 @@ window.onload = () => {
         }
     });
     
+    // Mouse click to shoot
+    config.canvas.addEventListener('mousedown', (e) => {
+        if (!gameState.isPlaying) return;
+        shootAtTarget();
+    });
+    
     // Joystick events
     setupJoystick();
+    setupAimJoystick();
     
     // Keyboard
     window.addEventListener('keydown', (e) => keys[e.key] = true);
     window.addEventListener('keyup', (e) => keys[e.key] = false);
+    
+    // Handle orientation change
+    window.addEventListener('resize', () => {
+        const isMobile = window.innerWidth < 768;
+        const isLandscape = window.innerWidth > window.innerHeight;
+        
+        if (isLandscape) {
+            config.width = isMobile ? window.innerWidth - 10 : 1200;
+            config.height = isMobile ? window.innerHeight - 100 : 600;
+        } else {
+            config.width = isMobile ? window.innerWidth - 10 : 800;
+            config.height = isMobile ? window.innerHeight - 150 : 600;
+        }
+        
+        const scale = performanceMode ? 0.7 : 1;
+        config.canvas.width = config.width * scale;
+        config.canvas.height = config.height * scale;
+        config.canvas.style.width = config.width + 'px';
+        config.canvas.style.height = config.height + 'px';
+        config.ctx.scale(scale, scale);
+        
+        // Keep player in bounds
+        gangLeader.x = Math.max(gangLeader.radius, Math.min(config.width - gangLeader.radius, gangLeader.x));
+        gangLeader.y = Math.max(gangLeader.radius, Math.min(config.height - gangLeader.radius, gangLeader.y));
+    });
     
     updateUI();
     
@@ -153,72 +203,17 @@ function setupJoystick() {
     document.addEventListener('mouseup', handleJoystickEnd);
 }
 
-function setupFireButton() {
-    const fireButton = document.getElementById('fireButton');
+function setupAimJoystick() {
+    const container = document.getElementById('aimJoystickContainer');
+    const stick = document.getElementById('aimJoystickStick');
     
-    // Mouse events
-    fireButton.addEventListener('mousedown', startFiring);
-    fireButton.addEventListener('mouseup', stopFiring);
-    fireButton.addEventListener('mouseleave', stopFiring);
+    container.addEventListener('touchstart', handleAimJoystickStart);
+    container.addEventListener('touchmove', handleAimJoystickMove);
+    container.addEventListener('touchend', handleAimJoystickEnd);
     
-    // Touch events with touch ID tracking
-    fireButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (e.touches.length > 0) {
-            fireButtonTouchId = e.touches[e.touches.length - 1].identifier;
-        }
-        startFiring();
-    });
-    fireButton.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        // Check if our fire button touch ended
-        let isOurTouch = false;
-        if (e.changedTouches) {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === fireButtonTouchId) {
-                    isOurTouch = true;
-                    break;
-                }
-            }
-        }
-        if (isOurTouch) {
-            fireButtonTouchId = null;
-            stopFiring();
-        }
-    });
-    fireButton.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        fireButtonTouchId = null;
-        stopFiring();
-    });
-}
-
-function startFiring() {
-    if (!gameState.isPlaying || gameState.isFiring) return;
-    
-    gameState.isFiring = true;
-    document.getElementById('fireButton').classList.add('firing');
-    
-    // Shoot immediately
-    shootAtTarget();
-    
-    // Then shoot continuously
-    const fireRate = 150; // milliseconds between shots
-    gameState.fireInterval = setInterval(() => {
-        if (gameState.isPlaying && gameState.isFiring) {
-            shootAtTarget();
-        }
-    }, fireRate);
-}
-
-function stopFiring() {
-    gameState.isFiring = false;
-    document.getElementById('fireButton').classList.remove('firing');
-    
-    if (gameState.fireInterval) {
-        clearInterval(gameState.fireInterval);
-        gameState.fireInterval = null;
-    }
+    container.addEventListener('mousedown', handleAimJoystickStart);
+    document.addEventListener('mousemove', handleAimJoystickMove);
+    document.addEventListener('mouseup', handleAimJoystickEnd);
 }
 
 function shootAtTarget() {
@@ -339,6 +334,91 @@ function handleJoystickEnd(e) {
     stick.style.transform = 'translate(-50%, -50%)';
 }
 
+// Aim Joystick Handlers
+function handleAimJoystickStart(e) {
+    if (!gameState.isPlaying) return;
+    
+    // For touch events, track the touch ID
+    if (e.touches) {
+        // Find a touch that's not the movement joystick touch
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            if (touch.identifier !== joystick.touchId) {
+                aimJoystick.touchId = touch.identifier;
+                break;
+            }
+        }
+    }
+    
+    aimJoystick.active = true;
+    const rect = e.currentTarget.getBoundingClientRect();
+    aimJoystick.startX = rect.left + rect.width / 2;
+    aimJoystick.startY = rect.top + rect.height / 2;
+}
+
+function handleAimJoystickMove(e) {
+    if (!aimJoystick.active) return;
+    
+    let clientX, clientY;
+    if (e.touches) {
+        // Find the touch with our aim joystick's ID
+        let foundTouch = null;
+        for (let i = 0; i < e.touches.length; i++) {
+            if (e.touches[i].identifier === aimJoystick.touchId) {
+                foundTouch = e.touches[i];
+                break;
+            }
+        }
+        if (foundTouch) {
+            clientX = foundTouch.clientX;
+            clientY = foundTouch.clientY;
+        } else {
+            return;
+        }
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    let deltaX = clientX - aimJoystick.startX;
+    let deltaY = clientY - aimJoystick.startY;
+    
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    if (distance > aimJoystick.maxDistance) {
+        deltaX = (deltaX / distance) * aimJoystick.maxDistance;
+        deltaY = (deltaY / distance) * aimJoystick.maxDistance;
+    }
+    
+    // Amplify sensitivity for better control
+    aimJoystick.deltaX = (deltaX / aimJoystick.maxDistance) * 1.3;
+    aimJoystick.deltaY = (deltaY / aimJoystick.maxDistance) * 1.3;
+    
+    const stick = document.getElementById('aimJoystickStick');
+    stick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+}
+
+function handleAimJoystickEnd(e) {
+    // Check if the released touch is our aim joystick touch
+    if (e && e.changedTouches) {
+        let isOurTouch = false;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === aimJoystick.touchId) {
+                isOurTouch = true;
+                break;
+            }
+        }
+        if (!isOurTouch) return;
+    }
+    
+    aimJoystick.active = false;
+    aimJoystick.deltaX = 0;
+    aimJoystick.deltaY = 0;
+    aimJoystick.touchId = null;
+    
+    const stick = document.getElementById('aimJoystickStick');
+    stick.style.transform = 'translate(-50%, -50%)';
+}
+
 function startGame() {
     gameState.isPlaying = true;
     gameState.ammo = 100;
@@ -408,16 +488,19 @@ function spawnDevil() {
         health = 3;
     }
     
-    // Scarier colors based on scary level
+    // Scarier colors based on scary level - progressively more horrifying
     let devilColor;
     if (gameState.scaryLevel === 0) {
         devilColor = health === 1 ? '#DC143C' : health === 2 ? '#8B0000' : '#4B0000';
     } else if (gameState.scaryLevel === 1) {
-        devilColor = health === 1 ? '#8B0000' : health === 2 ? '#4B0000' : '#2B0000';
+        // Blood-soaked demons (15+ kills)
+        devilColor = health === 1 ? '#6B0000' : health === 2 ? '#3B0000' : '#1a0000';
     } else if (gameState.scaryLevel === 2) {
-        devilColor = health === 1 ? '#4B0000' : health === 2 ? '#2B0000' : '#0a0000';
+        // Rotting flesh demons (30+ kills)
+        devilColor = health === 1 ? '#3B0000' : health === 2 ? '#1a0000' : '#0a0000';
     } else {
-        devilColor = health === 1 ? '#000000' : health === 2 ? '#0a0000' : '#000000';
+        // Pure evil shadow demons (50+ kills)
+        devilColor = health === 1 ? '#1a0000' : health === 2 ? '#0a0000' : '#000000';
     }
     
     devils.push({
@@ -634,6 +717,15 @@ function update(dt) {
     gameState.ammo = Math.min(100, gameState.ammo + 15 * dt);
     gameState.rage = Math.min(100, gameState.rage + 5 * dt);
     
+    // Keyboard shooting (Space key)
+    if (keys[' ']) {
+        const now = Date.now();
+        if (now - lastFireTime >= fireDelay) {
+            shootAtTarget();
+            lastFireTime = now;
+        }
+    }
+    
     // Update gang leader movement
     let moveX = 0, moveY = 0;
     
@@ -642,9 +734,15 @@ function update(dt) {
     if (keys['ArrowUp'] || keys['w'] || keys['W']) moveY -= 1;
     if (keys['ArrowDown'] || keys['s'] || keys['S']) moveY += 1;
     
+    // Both joysticks control movement and firing
     if (joystick.active) {
         moveX += joystick.deltaX;
         moveY += joystick.deltaY;
+    }
+    
+    if (aimJoystick.active) {
+        moveX += aimJoystick.deltaX;
+        moveY += aimJoystick.deltaY;
     }
     
     const magnitude = Math.sqrt(moveX * moveX + moveY * moveY);
@@ -654,6 +752,13 @@ function update(dt) {
         
         // Update gun direction to face movement direction
         gangLeader.angle = Math.atan2(moveY, moveX);
+        
+        // Auto-fire when moving with any joystick
+        const now = Date.now();
+        if (now - lastFireTime >= fireDelay) {
+            shootAtTarget();
+            lastFireTime = now;
+        }
     }
     
     // Apply speed boost if active
@@ -750,13 +855,39 @@ function update(dt) {
         gameState.wave++;
         gameState.devilsPerWave = Math.min(gameState.wave, 10); // Max 10 devils per wave
         
-        // Update scary level based on wave
-        if (gameState.wave >= 15) {
-            gameState.scaryLevel = 3; // HELL MODE
-        } else if (gameState.wave >= 10) {
-            gameState.scaryLevel = 2; // NIGHTMARE MODE
-        } else if (gameState.wave >= 5) {
-            gameState.scaryLevel = 1; // DARK MODE
+        // Update scary level based on kills for sudden horrifying transitions
+        const oldScaryLevel = gameState.scaryLevel;
+        if (gameState.kills >= 50) {
+            gameState.scaryLevel = 3; // HELL MODE - pure horror
+        } else if (gameState.kills >= 30) {
+            gameState.scaryLevel = 2; // NIGHTMARE MODE - very scary
+        } else if (gameState.kills >= 15) {
+            gameState.scaryLevel = 1; // DARK MODE - getting scary
+        }
+        
+        // Sudden horrifying transition effect when level changes
+        if (oldScaryLevel !== gameState.scaryLevel) {
+            // Screen flash with blood red
+            const flash = document.createElement('div');
+            flash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle, rgba(139,0,0,0.9), rgba(0,0,0,0.9));pointer-events:none;z-index:9999;';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 500);
+            
+            // Spawn extra particles for horror effect
+            if (!performanceMode) {
+                for (let i = 0; i < 100; i++) {
+                    particles.push({
+                        x: Math.random() * config.width,
+                        y: Math.random() * config.height,
+                        dx: (Math.random() - 0.5) * 3,
+                        dy: (Math.random() - 0.5) * 3,
+                        radius: Math.random() * 3 + 1,
+                        color: '#8B0000',
+                        life: 60,
+                        alpha: 1
+                    });
+                }
+            }
         }
         
         spawnWave();
@@ -868,19 +999,19 @@ function draw() {
         gradient.addColorStop(0.5, '#2d0a0a');
         gradient.addColorStop(1, '#0a0000');
     } else if (gameState.scaryLevel === 1) {
-        // Dark mode - deeper red (Wave 5+)
-        gradient.addColorStop(0, '#0a0000');
-        gradient.addColorStop(0.5, '#1a0000');
-        gradient.addColorStop(1, '#050000');
+        // Dark mode - dark blue horror (15+ kills)
+        gradient.addColorStop(0, '#000008');
+        gradient.addColorStop(0.5, '#00000f');
+        gradient.addColorStop(1, '#000005');
     } else if (gameState.scaryLevel === 2) {
-        // Nightmare - almost black with red tint (Wave 10+)
+        // Nightmare - deep dark blue void (30+ kills)
         gradient.addColorStop(0, '#000000');
-        gradient.addColorStop(0.5, '#0a0000');
+        gradient.addColorStop(0.5, '#00000a');
         gradient.addColorStop(1, '#000000');
     } else {
-        // Hell mode - pure darkness with blood red (Wave 15+)
+        // Hell - pure evil dark blue-black abyss (50+ kills)
         gradient.addColorStop(0, '#000000');
-        gradient.addColorStop(0.5, '#050000');
+        gradient.addColorStop(0.5, '#000005');
         gradient.addColorStop(1, '#000000');
     }
     
@@ -1412,7 +1543,14 @@ function updateUI() {
 
 function gameOver() {
     gameState.isPlaying = false;
-    stopFiring(); // Stop continuous firing
+    
+    // Reset joysticks
+    joystick.active = false;
+    joystick.deltaX = 0;
+    joystick.deltaY = 0;
+    aimJoystick.active = false;
+    aimJoystick.deltaX = 0;
+    aimJoystick.deltaY = 0;
     
     document.getElementById('overlayTitle').textContent = '💀 YOU HAVE FALLEN 😈';
     document.getElementById('overlayMessage').textContent = 'The devils overwhelmed you!';

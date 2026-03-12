@@ -258,6 +258,11 @@ body::before {
     z-index: 10;
 }
 
+.aim-joystick {
+    left: auto;
+    right: 40px;
+}
+
 .joystick-base {
     width: 100px;
     height: 100px;
@@ -301,28 +306,7 @@ body::before {
 
 /* Fire Button */
 .fire-button {
-    position: absolute;
-    bottom: 120px;
-    right: 40px;
-    width: 100px;
-    height: 100px;
-    background: radial-gradient(circle, #FF4500 0%, #8B0000 100%);
-    border-radius: 50%;
-    border: 5px solid #FFD700;
-    display: flex !important;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-    box-shadow: 0 8px 25px rgba(255, 69, 0, 0.6), 
-                inset 0 -3px 10px rgba(0, 0, 0, 0.5);
-    transition: all 0.15s ease;
-    z-index: 100 !important;
-    animation: firePulse 1.5s ease-in-out infinite;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
+    display: none !important; /* Replaced with aim joystick */
 }
 
 .fire-button:active {
@@ -819,6 +803,11 @@ body::before {
     .joystick-container {
         bottom: 100px;
         left: 20px;
+    }
+    
+    .aim-joystick {
+        left: auto;
+        right: 20px;
     }
     
     .joystick-base {

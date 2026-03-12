@@ -1018,6 +1018,86 @@ function draw() {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, config.width, config.height);
     
+    // Horror house background elements
+    if (!performanceMode) {
+        ctx.save();
+        
+        // Haunted houses silhouettes
+        const houseCount = Math.floor(config.width / 250);
+        for (let i = 0; i < houseCount; i++) {
+            const x = i * 250 + 50;
+            const y = config.height - 120;
+            
+            // House body
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(x, y, 100, 80);
+            
+            // Roof
+            ctx.beginPath();
+            ctx.moveTo(x - 10, y);
+            ctx.lineTo(x + 50, y - 40);
+            ctx.lineTo(x + 110, y);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Eerie glowing windows
+            const windowGlow = gameState.scaryLevel >= 1 ? '#ff4400' : '#ffaa00';
+            ctx.fillStyle = windowGlow;
+            ctx.globalAlpha = 0.6 + Math.sin(Date.now() * 0.003 + i) * 0.2;
+            ctx.fillRect(x + 15, y + 20, 20, 25);
+            ctx.fillRect(x + 65, y + 20, 20, 25);
+            ctx.globalAlpha = 1;
+        }
+        
+        // Dead trees
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 5; i++) {
+            const treeX = i * (config.width / 5) + 80;
+            const treeY = config.height - 60;
+            
+            // Tree trunk
+            ctx.beginPath();
+            ctx.moveTo(treeX, treeY);
+            ctx.lineTo(treeX, treeY - 50);
+            ctx.stroke();
+            
+            // Twisted branches
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(treeX, treeY - 30);
+            ctx.lineTo(treeX - 20, treeY - 45);
+            ctx.moveTo(treeX, treeY - 30);
+            ctx.lineTo(treeX + 25, treeY - 50);
+            ctx.stroke();
+            ctx.lineWidth = 3;
+        }
+        
+        // Graves/tombstones
+        ctx.fillStyle = '#151515';
+        for (let i = 0; i < 8; i++) {
+            const graveX = i * (config.width / 8) + 30;
+            const graveY = config.height - 40;
+            
+            // Tombstone
+            ctx.fillRect(graveX, graveY, 15, 25);
+            ctx.beginPath();
+            ctx.arc(graveX + 7.5, graveY, 7.5, Math.PI, 0);
+            ctx.fill();
+        }
+        
+        // Fog effect
+        if (gameState.scaryLevel >= 2) {
+            const fogGradient = ctx.createLinearGradient(0, config.height - 100, 0, config.height);
+            fogGradient.addColorStop(0, 'rgba(30, 30, 40, 0)');
+            fogGradient.addColorStop(1, 'rgba(30, 30, 40, 0.4)');
+            ctx.fillStyle = fogGradient;
+            ctx.fillRect(0, config.height - 100, config.width, 100);
+        }
+        
+        ctx.restore();
+    }
+    
     // Add scary screen effects based on level
     if (gameState.scaryLevel >= 1) {
         // Red vignette effect - gets stronger

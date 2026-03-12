@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🌱 Verdura Grove - Plant Survival Game</title>
+    <title>💀 Gang War: Devil's Nightmare - Survival Shooter</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,16 +12,16 @@
         <div class="game-hud">
             <div class="resource-bars">
                 <div class="resource-bar">
-                    <span class="resource-label">☀️ Sunlight</span>
+                    <span class="resource-label">🔫 Ammo</span>
                     <div class="bar-container">
-                        <div class="bar-fill sunlight" id="sunlightBar" style="width: 100%"></div>
+                        <div class="bar-fill ammo" id="sunlightBar" style="width: 100%"></div>
                     </div>
                     <span class="resource-value" id="sunlightValue">100</span>
                 </div>
                 <div class="resource-bar">
-                    <span class="resource-label">💧 Water</span>
+                    <span class="resource-label">😈 Rage</span>
                     <div class="bar-container">
-                        <div class="bar-fill water" id="waterBar" style="width: 80%"></div>
+                        <div class="bar-fill rage" id="waterBar" style="width: 80%"></div>
                     </div>
                     <span class="resource-value" id="waterValue">80</span>
                 </div>
@@ -35,17 +35,20 @@
             </div>
             <div class="game-info">
                 <div class="info-item">
-                    <span class="label">Growth</span>
-                    <span class="value" id="growthLevel">1</span>
+                    <span class="label">💀 Kills</span>
+                    <span class="value" id="growthLevel">0</span>
                 </div>
                 <div class="info-item day-night" id="dayNight">
-                    <span class="label">☀️ DAY</span>
+                    <span class="label">⏱️ TIME</span>
                 </div>
                 <div class="info-item">
-                    <span class="label">Days</span>
+                    <span class="label">Score</span>
                     <span class="value" id="daysCount">0</span>
                 </div>
             </div>
+            
+            <!-- Active Powerups Display -->
+            <div class="powerups-display" id="powerupsDisplay"></div>
         </div>
         
         <canvas id="gameCanvas"></canvas>
@@ -57,60 +60,85 @@
             </div>
         </div>
         
+        <!-- Fire Button -->
+        <div class="fire-button" id="fireButton">
+            <span class="fire-icon">🔥</span>
+            <span class="fire-text">FIRE</span>
+        </div>
+        
         <!-- Instructions -->
         <div class="instructions">
-            <p>🕹️ Move or Arrow Keys • 🌿 Tap to Plant Vine (10💧)</p>
+            <p>🕹️ Move: Joystick/Arrows • 🔫 Hold FIRE Button to Shoot</p>
         </div>
         
         <div class="game-overlay active" id="gameOverlay">
             <div class="overlay-content">
-                <h1 id="overlayTitle">🌱 VERDURA GROVE 🌿</h1>
-                <p id="overlayMessage">Survive as a living plant! Defend against bugs with vines.</p>
+                <div class="game-logo">
+                    <div class="logo-devils">😈💀😈</div>
+                    <h1 id="overlayTitle" class="game-title">DEVIL'S NIGHTMARE</h1>
+                    <div class="subtitle">Gang War Survival Shooter</div>
+                </div>
+                
+                <p id="overlayMessage" class="tagline">The last gang leader standing against the devil horde!</p>
                 
                 <div class="stats-box" id="statsBox" style="display: none;">
+                    <h2 class="game-over-title">💀 MISSION FAILED 💀</h2>
                     <div class="stat-row">
-                        <span>Max Growth Level:</span>
-                        <span id="finalGrowth">0</span>
+                        <span>⏱️ Survival Time:</span>
+                        <span id="finalGrowth" class="stat-value">0s</span>
                     </div>
                     <div class="stat-row">
-                        <span>Days Survived:</span>
-                        <span id="finalDays">0</span>
+                        <span>🏆 Final Score:</span>
+                        <span id="finalDays" class="stat-value">0</span>
                     </div>
                     <div class="stat-row highlight">
-                        <span>Bugs Defeated:</span>
-                        <span id="bugsKilled">0</span>
+                        <span>💀 Devils Killed:</span>
+                        <span id="bugsKilled" class="stat-value">0</span>
                     </div>
                 </div>
                 
-                <div class="controls-info">
-                    <h3>🎮 How to Play</h3>
-                    <p><strong>Move:</strong> Use virtual joystick (mobile) or arrow keys (desktop)</p>
-                    <p><strong>Defend:</strong> Tap/click anywhere to plant defensive vines (costs 10 water)</p>
-                    <p><strong>Survive:</strong> Avoid bugs, manage resources, survive day & night cycles</p>
-                    <p class="tip">💡 Sunlight increases during day, health decreases at night!</p>
+                <button class="btn-primary" id="startBtn">
+                    <span class="btn-icon">🔥</span>
+                    <span class="btn-text">START BATTLE</span>
+                    <span class="btn-icon">🔥</span>
+                </button>
+                
+                <div class="game-features">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔫</div>
+                        <h4>Infinite Ammo</h4>
+                        <p>Shoot continuously</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💣</div>
+                        <h4>Epic Powerups</h4>
+                        <p>Multi-shot, bombs, shields</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌊</div>
+                        <h4>Wave System</h4>
+                        <p>Progressive difficulty</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">😈</div>
+                        <h4>Hell Mode</h4>
+                        <p>Survive to unlock terror</p>
+                    </div>
                 </div>
                 
-                <button class="btn-primary" id="startBtn">🌱 SCATTER SEEDS & START</button>
-                
-                <div class="features-info">
-                    <h3>🌿 Game Features</h3>
-                    <div class="feature-grid">
-                        <div class="feature-item">
-                            <span class="icon">☀️</span>
-                            <span>Day/Night cycle</span>
-                        </div>
-                        <div class="feature-item">
-                            <span class="icon">💧</span>
-                            <span>Resource management</span>
-                        </div>
-                        <div class="feature-item">
-                            <span class="icon">🐛</span>
-                            <span>Attacking bugs</span>
-                        </div>
-                        <div class="feature-item">
-                            <span class="icon">🌳</span>
-                            <span>Defense towers</span>
-                        </div>
+                <div class="controls-guide">
+                    <h3>🎮 CONTROLS</h3>
+                    <div class="control-row">
+                        <span class="control-label">🕹️ MOVE</span>
+                        <span class="control-desc">Joystick / WASD / Arrows</span>
+                    </div>
+                    <div class="control-row">
+                        <span class="control-label">🔫 AIM</span>
+                        <span class="control-desc">Mouse / Touch screen</span>
+                    </div>
+                    <div class="control-row">
+                        <span class="control-label">🔥 FIRE</span>
+                        <span class="control-desc">Hold FIRE button</span>
                     </div>
                 </div>
             </div>

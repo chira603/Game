@@ -83,8 +83,13 @@ window.onload = () => {
     config.width = isMobile ? window.innerWidth - 10 : 800;
     config.height = isMobile ? window.innerHeight - 150 : 600;
     
-    config.canvas.width = config.width;
-    config.canvas.height = config.height;
+    // Reduce canvas resolution on mobile for performance
+    const scale = performanceMode ? 0.7 : 1;
+    config.canvas.width = config.width * scale;
+    config.canvas.height = config.height * scale;
+    config.canvas.style.width = config.width + 'px';
+    config.canvas.style.height = config.height + 'px';
+    config.ctx.scale(scale, scale);
     
     gangLeader.x = config.width / 2;
     gangLeader.y = config.height / 2;
@@ -156,17 +161,34 @@ function setupFireButton() {
     fireButton.addEventListener('mouseup', stopFiring);
     fireButton.addEventListener('mouseleave', stopFiring);
     
-    // Touch events
+    // Touch events with touch ID tracking
     fireButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        if (e.touches.length > 0) {
+            fireButtonTouchId = e.touches[e.touches.length - 1].identifier;
+        }
         startFiring();
     });
     fireButton.addEventListener('touchend', (e) => {
         e.preventDefault();
-        stopFiring();
+        // Check if our fire button touch ended
+        let isOurTouch = false;
+        if (e.changedTouches) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === fireButtonTouchId) {
+                    isOurTouch = true;
+                    break;
+                }
+            }
+        }
+        if (isOurTouch) {
+            fireButtonTouchId = null;
+            stopFiring();
+        }
     });
     fireButton.addEventListener('touchcancel', (e) => {
         e.preventDefault();
+        fireButtonTouchId = null;
         stopFiring();
     });
 }
@@ -235,6 +257,19 @@ function shootAtTarget() {
 
 function handleJoystickStart(e) {
     if (!gameState.isPlaying) return;
+    
+    // For touch events, track the touch ID
+    if (e.touches) {
+        // Find a touch that's not the fire button touch
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            if (touch.identifier !== fireButtonTouchId) {
+                joystick.touchId = touch.identifier;
+                break;
+            }
+        }
+    }
+    
     joystick.active = true;
     const rect = e.currentTarget.getBoundingClientRect();
     joystick.startX = rect.left + rect.width / 2;
@@ -244,8 +279,26 @@ function handleJoystickStart(e) {
 function handleJoystickMove(e) {
     if (!joystick.active) return;
     
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let clientX, clientY;
+    if (e.touches) {
+        // Find the touch with our joystick's ID
+        let foundTouch = null;
+        for (let i = 0; i < e.touches.length; i++) {
+            if (e.touches[i].identifier === joystick.touchId) {
+                foundTouch = e.touches[i];
+                break;
+            }
+        }
+        if (foundTouch) {
+            clientX = foundTouch.clientX;
+            clientY = foundTouch.clientY;
+        } else {
+            return;
+        }
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
     
     let deltaX = clientX - joystick.startX;
     let deltaY = clientY - joystick.startY;
@@ -264,10 +317,23 @@ function handleJoystickMove(e) {
     stick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
 }
 
-function handleJoystickEnd() {
+function handleJoystickEnd(e) {
+    // Check if the released touch is our joystick touch
+    if (e && e.changedTouches) {
+        let isOurTouch = false;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === joystick.touchId) {
+                isOurTouch = true;
+                break;
+            }
+        }
+        if (!isOurTouch) return;
+    }
+    
     joystick.active = false;
     joystick.deltaX = 0;
     joystick.deltaY = 0;
+    joystick.touchId = null;
     
     const stick = document.getElementById('joystickStick');
     stick.style.transform = 'translate(-50%, -50%)';
@@ -880,10 +946,15 @@ function draw() {
         ctx.fill();
         
         // Body with gradient
-        const gradient = ctx.createRadialGradient(0, 0, devil.radius * 0.3, 0, 0, devil.radius);
-        gradient.addColorStop(0, devil.color);
-        gradient.addColorStop(1, '#000');
-        ctx.fillStyle = gradient;
+        if (performanceMode) {
+            // Simple solid color on mobile
+            ctx.fillStyle = devil.color;
+        } else {
+            const gradient = ctx.createRadialGradient(0, 0, devil.radius * 0.3, 0, 0, devil.radius);
+            gradient.addColorStop(0, devil.color);
+            gradient.addColorStop(1, '#000');
+            ctx.fillStyle = gradient;
+        }
         ctx.beginPath();
         ctx.arc(0, 0, devil.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -894,10 +965,14 @@ function draw() {
         ctx.stroke();
         
         // Horns with 3D effect
-        const hornGradient = ctx.createLinearGradient(-devil.radius, -devil.radius * 1.3, 0, -devil.radius);
-        hornGradient.addColorStop(0, '#2a0000');
-        hornGradient.addColorStop(1, '#000');
-        ctx.fillStyle = hornGradient;
+        if (performanceMode) {
+            ctx.fillStyle = '#2a0000';
+        } else {
+            const hornGradient = ctx.createLinearGradient(-devil.radius, -devil.radius * 1.3, 0, -devil.radius);
+            hornGradient.addColorStop(0, '#2a0000');
+            hornGradient.addColorStop(1, '#000');
+            ctx.fillStyle = hornGradient;
+        }
         
         // Left horn
         ctx.beginPath();
@@ -1015,27 +1090,33 @@ function draw() {
         ctx.scale(scale, scale);
         ctx.rotate(powerup.rotation);
         
-        // Outer glow rings (multiple layers)
-        for (let i = 3; i > 0; i--) {
-            ctx.shadowBlur = 30 * i;
-            ctx.shadowColor = powerup.color;
-            ctx.strokeStyle = powerup.color;
-            ctx.globalAlpha = 0.3 / i;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(0, 0, powerup.radius + i * 8, 0, Math.PI * 2);
-            ctx.stroke();
+        // Outer glow rings (multiple layers) - skip on mobile
+        if (!performanceMode) {
+            for (let i = 3; i > 0; i--) {
+                ctx.shadowBlur = 30 * i;
+                ctx.shadowColor = powerup.color;
+                ctx.strokeStyle = powerup.color;
+                ctx.globalAlpha = 0.3 / i;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, powerup.radius + i * 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
         }
         
         ctx.globalAlpha = 1;
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = performanceMode ? 0 : 25;
         
         // Background circle with animated gradient
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, powerup.radius);
-        gradient.addColorStop(0, '#FFFFFF');
-        gradient.addColorStop(0.3, powerup.color);
-        gradient.addColorStop(1, powerup.color + '30');
-        ctx.fillStyle = gradient;
+        if (performanceMode) {
+            ctx.fillStyle = powerup.color;
+        } else {
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, powerup.radius);
+            gradient.addColorStop(0, '#FFFFFF');
+            gradient.addColorStop(0.3, powerup.color);
+            gradient.addColorStop(1, powerup.color + '30');
+            ctx.fillStyle = gradient;
+        }
         ctx.beginPath();
         ctx.arc(0, 0, powerup.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -1045,14 +1126,16 @@ function draw() {
         ctx.lineWidth = 3;
         ctx.stroke();
         
-        // Inner sparkles
-        ctx.shadowBlur = 0;
-        for (let i = 0; i < 6; i++) {
-            const sparkleAngle = (powerup.pulse + i * Math.PI / 3);
-            const sparkleX = Math.cos(sparkleAngle) * (powerup.radius * 0.6);
-            const sparkleY = Math.sin(sparkleAngle) * (powerup.radius * 0.6);
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(sparkleX - 1, sparkleY - 1, 2, 2);
+        // Inner sparkles - skip on mobile
+        if (!performanceMode) {
+            ctx.shadowBlur = 0;
+            for (let i = 0; i < 6; i++) {
+                const sparkleAngle = (powerup.pulse + i * Math.PI / 3);
+                const sparkleX = Math.cos(sparkleAngle) * (powerup.radius * 0.6);
+                const sparkleY = Math.sin(sparkleAngle) * (powerup.radius * 0.6);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(sparkleX - 1, sparkleY - 1, 2, 2);
+            }
         }
         
         // Icon emoji (larger and with shadow)
@@ -1108,10 +1191,14 @@ function draw() {
     ctx.fill();
     
     // Body (muscular build)
-    const bodyGradient = ctx.createRadialGradient(0, 0, gangLeader.radius * 0.3, 0, 0, gangLeader.radius);
-    bodyGradient.addColorStop(0, '#2a2a2a');
-    bodyGradient.addColorStop(1, '#000');
-    ctx.fillStyle = bodyGradient;
+    if (performanceMode) {
+        ctx.fillStyle = '#2a2a2a';
+    } else {
+        const bodyGradient = ctx.createRadialGradient(0, 0, gangLeader.radius * 0.3, 0, 0, gangLeader.radius);
+        bodyGradient.addColorStop(0, '#2a2a2a');
+        bodyGradient.addColorStop(1, '#000');
+        ctx.fillStyle = bodyGradient;
+    }
     ctx.beginPath();
     ctx.arc(0, 0, gangLeader.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -1340,9 +1427,19 @@ function gameOver() {
 }
 
 let lastTime = 0;
+let frameCount = 0;
 function gameLoop(timestamp = 0) {
     const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
     lastTime = timestamp;
+    
+    // Limit frame rate on mobile (30 FPS instead of 60)
+    if (performanceMode) {
+        frameCount++;
+        if (frameCount % 2 !== 0) {
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+    }
     
     update(dt);
     draw();

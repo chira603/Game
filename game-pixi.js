@@ -5,7 +5,7 @@ const config = {
   width: 800,
   height: 600,
   mobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-  scale: 1,
+  dpr: 1,
   maxDevils: 24
 };
 
@@ -86,24 +86,24 @@ function setupPixi() {
     config.height = isMobile ? window.innerHeight - 150 : 640;
   }
 
-  config.scale = config.mobile ? 0.8 : 1;
+  config.dpr = Math.min(window.devicePixelRatio || 1, config.mobile ? 2 : 2.5);
 
   config.app = new PIXI.Application({
     view: config.canvas,
-    width: Math.floor(config.width * config.scale),
-    height: Math.floor(config.height * config.scale),
-    antialias: false,
+    width: config.width,
+    height: config.height,
+    antialias: true,
     backgroundAlpha: 1,
-    resolution: 1,
-    autoDensity: false
+    resolution: config.dpr,
+    autoDensity: true
   });
 
   config.canvas.style.width = `${config.width}px`;
   config.canvas.style.height = `${config.height}px`;
 
   config.world = new PIXI.Container();
-  config.world.scale.set(config.scale, config.scale);
   config.app.stage.addChild(config.world);
+  config.app.stage.roundPixels = true;
 
   bgRect = new PIXI.Graphics();
   config.world.addChild(bgRect);
@@ -387,8 +387,8 @@ function updatePlayer(dt) {
   player.x = Math.max(player.radius, Math.min(config.width - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(config.height - player.radius, player.y));
 
-  player.sprite.x = player.x;
-  player.sprite.y = player.y;
+  player.sprite.x = Math.round(player.x);
+  player.sprite.y = Math.round(player.y);
   player.sprite.rotation = player.angle;
 }
 
@@ -398,8 +398,8 @@ function updateBullets(dt) {
     b.x += b.dx * dt;
     b.y += b.dy * dt;
     b.life -= dt;
-    b.sprite.x = b.x;
-    b.sprite.y = b.y;
+    b.sprite.x = Math.round(b.x);
+    b.sprite.y = Math.round(b.y);
 
     if (b.life <= 0 || b.x < -30 || b.x > config.width + 30 || b.y < -30 || b.y > config.height + 30) {
       recycleBullet(i);
@@ -433,8 +433,8 @@ function updateDevils(dt) {
     const dist = Math.hypot(dx, dy) || 1;
     d.x += (dx / dist) * d.speed * dt;
     d.y += (dy / dist) * d.speed * dt;
-    d.sprite.x = d.x;
-    d.sprite.y = d.y;
+    d.sprite.x = Math.round(d.x);
+    d.sprite.y = Math.round(d.y);
 
     if (dist < d.radius + player.radius - 4) {
       if (state.shieldTimer > 0) d.health = 0;
@@ -706,11 +706,11 @@ function handleResize() {
     config.height = isMobile ? window.innerHeight - 150 : 640;
   }
 
-  config.scale = config.mobile ? 0.8 : 1;
-  config.app.renderer.resize(Math.floor(config.width * config.scale), Math.floor(config.height * config.scale));
+  config.dpr = Math.min(window.devicePixelRatio || 1, config.mobile ? 2 : 2.5);
+  config.app.renderer.resolution = config.dpr;
+  config.app.renderer.resize(config.width, config.height);
   config.canvas.style.width = `${config.width}px`;
   config.canvas.style.height = `${config.height}px`;
-  config.world.scale.set(config.scale, config.scale);
 
   player.x = Math.max(player.radius, Math.min(config.width - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(config.height - player.radius, player.y));
